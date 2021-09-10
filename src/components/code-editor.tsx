@@ -1,5 +1,7 @@
-import React from 'react'
-import MonacoEditor from '@monaco-editor/react'
+import React, { useRef } from 'react'
+import MonacoEditor, { EditorDidMount } from '@monaco-editor/react'
+import prettier from 'prettier'
+import parser from 'prettier/parser-babel'
 
 interface CodeEditorProps {
     initialValue: string
@@ -7,27 +9,50 @@ interface CodeEditorProps {
 }
 
 const CodeEditor: React.FC<CodeEditorProps> = ({ onChange, initialValue }) => {
-    const onEditorDidMount = (getValue: () => string, monacoEditor: any) => {
+    const editorRef = useRef<any>()
+
+    const onEditorDidMount: EditorDidMount = (getValue, monacoEditor) => {
+        editorRef.current = monacoEditor
         monacoEditor.onDidChangeModelContent(() => {
             onChange(getValue());
         })
+
+        monacoEditor.getModel()?.updateOptions({ tabSize: 2 })
+    }
+
+    const onFormatClick = () => {
+
+        //get currentvalue from editor
+        const unformatted = editorRef.current.getModel().getValue()
+        //format that value into
+        const formatted = prettier.format(unformatted, {
+            parser: 'babel',
+            plugins: [parser],
+            useTabs: false,
+            singleQuote: true,
+        })
+        //set the formatted value back in the editor
+        editorRef.current.setValue(formatted)
     }
     return (
-        <MonacoEditor
-            editorDidMount={onEditorDidMount}
-            value={initialValue}
-            language='javascript'
-            height='200px'
-            theme='dark'
-            options={{
-                wordWrap: 'on',
-                minimap: { enabled: false },
-                folding: false,
-                lineNumbersMinChars: 3,
-                fontSize: 16,
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-            }} />
+        <div>
+            <button onClick={onFormatClick}>Format</button>
+            <MonacoEditor
+                editorDidMount={onEditorDidMount}
+                value={initialValue}
+                language='javascript'
+                height='200px'
+                theme='dark'
+                options={{
+                    wordWrap: 'on',
+                    minimap: { enabled: false },
+                    folding: false,
+                    lineNumbersMinChars: 3,
+                    fontSize: 16,
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                }} />
+        </div>
     )
 }
 
